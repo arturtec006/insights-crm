@@ -2,109 +2,130 @@
 
 O app roda em dois formatos a partir do **mesmo código**:
 
-| | Serverless (Vercel) | Sempre ligado (Railway, VPS) |
+| | Serverless (Vercel — em produção hoje) | Sempre ligado (Railway, VPS) |
 |---|---|---|
-| Entrada | [`api/index.ts`](api/index.ts) importa o app Express | [`backend/src/server.ts`](backend/src/server.ts) abre a porta |
-| Frontend | CDN da Vercel serve `frontend/dist` | o próprio Express serve `frontend/dist` |
+| Entrada | `src/app.ts` (default export) | `src/server.ts` abre a porta |
+| Frontend | projeto separado, CDN da Vercel | o próprio Express serve `frontend/dist` |
 | Garimpo | a tela chama `POST /api/prospecting/jobs/:id/tick` em fatias | `PROSPECTING_INLINE=true` termina o job sozinho |
 
-Em ambos os casos front e API ficam na **mesma origem** — é isso que permite manter
-os cookies de sessão em `sameSite: lax` em vez de afrouxar para `none`.
+## Em produção agora
 
----
+| | URL |
+|---|---|
+| **App** | https://crm-web-mocha-omega.vercel.app |
+| API (não precisa acessar direto) | https://crm-api-delta-rose.vercel.app |
+| Banco | Neon Postgres, `sa-east-1` (São Paulo) |
 
-## Vercel + Neon (o caminho escolhido)
+## Arquitetura: dois projetos, uma origem
 
-### 1. Banco no Neon
+São **dois projetos Vercel** a partir do mesmo repositório:
 
-Crie um projeto em [neon.tech](https://neon.tech) (tier gratuito) e copie **as duas** strings:
+- `crm-api` — raiz em `backend/`, framework `express`
+- `crm-web` — raiz em `frontend/`, Vite
 
-- a **pooled** (tem `-pooler` no host) → vai para `DATABASE_URL`
-- a **direct** (sem `-pooler`) → vai para `DIRECT_URL`
+O [`frontend/vercel.json`](frontend/vercel.json) faz *rewrite* de `/api/*` para o domínio
+da API. Rewrite é proxy do lado do servidor, não redirecionamento: **o navegador só
+enxerga o domínio do frontend**. É isso que permite manter os cookies de sessão em
+`sameSite: lax` em vez de afrouxar para `none` — verificado, os cookies são emitidos no
+domínio de `crm-web`.
 
-Cada invocação serverless abre a própria conexão. Sem o pooler, um punhado de
-requisições simultâneas esgota o limite de conexões do Postgres. As migrations,
-por outro lado, precisam da conexão direta — pooler não executa DDL de forma
-confiável.
+### Por que não Vercel Services
 
-### 2. Trocar SQLite por Postgres
+A tentativa óbvia — um projeto só com `services` para `frontend/` e `backend/` — não
+funciona com o backend num subdiretório. O builder Express achata os arquivos compilados
+para a raiz do bundle (`backend/dist/app.js` vira `app.js`) mas **preserva o prefixo do
+`node_modules`** (`backend/node_modules/express/...`). Em execução, o `app.js` na raiz
+procura `express` em `/var/task/node_modules/` e não encontra:
 
-Em `backend/prisma/schema.prisma`:
-
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
+```
+Cannot find module 'express'  Require stack: - /var/task/app.js
 ```
 
-As migrations existentes foram geradas para SQLite e **não** se aplicam ao
-Postgres. Gere uma inicial limpa (não há dados de produção a preservar):
+Dá para confirmar isso sem fazer deploy: `vercel build --prod` e inspecionar
+`.vercel/output/services/api/functions/index.func/.vc-config.json`, no campo `filePathMap`.
 
-```bash
-rm -rf backend/prisma/migrations
-npx prisma migrate dev --name init --schema backend/prisma/schema.prisma
-```
+Com o backend como projeto próprio, a raiz do projeto **é** `backend/`, os dois caem no
+mesmo nível e a resolução funciona.
 
-### 3. Variáveis de ambiente na Vercel
+## Configuração
 
-Gere segredos novos — **nunca** reaproveite os de desenvolvimento:
+### Banco (Neon)
 
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
+Duas strings de conexão do mesmo projeto:
+
+- a **pooled** (tem `-pooler` no host) → `DATABASE_URL`
+- a **direct** (sem `-pooler`) → `DIRECT_URL`
+
+Cada invocação serverless abre a própria conexão; sem o pooler, um punhado de requisições
+simultâneas esgota o limite do Postgres. As migrations precisam da direta, porque pooler
+não roda DDL de forma confiável.
+
+### Variáveis no projeto `crm-api`
+
+O frontend é estático e não precisa de nenhuma.
 
 | Variável | Valor |
 |---|---|
 | `DATABASE_URL` | string **pooled** do Neon |
 | `DIRECT_URL` | string **direct** do Neon |
-| `JWT_ACCESS_SECRET` | 64 bytes aleatórios, novos |
-| `JWT_REFRESH_SECRET` | 64 bytes aleatórios, novos e **diferentes** do de cima |
-| `NODE_ENV` | `production` |
+| `JWT_ACCESS_SECRET` | 64 bytes aleatórios |
+| `JWT_REFRESH_SECRET` | 64 bytes aleatórios, **diferentes** do de cima |
 | `COOKIE_SECURE` | `true` |
 | `PROSPECTING_USER_AGENT` | `SeuCRM/1.0 (prospecting; seu-email@dominio.com.br)` |
 | `PROSPECTING_SLICE_MS` | `45000` |
+| `PROSPECTING_INLINE` | `false` |
 
-Não defina `PROSPECTING_INLINE` aqui: em serverless o loop de fundo é congelado
-assim que a resposta é enviada, e o worker seria interrompido no meio.
+Gere segredos com
+`node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`.
 
-### 4. Deploy
+**Não** ligue `PROSPECTING_INLINE` em serverless: o loop de fundo é congelado assim que a
+resposta é enviada, e o garimpo pararia no meio.
+
+### Migrations
+
+Rodam **deliberadamente**, não em todo build:
 
 ```bash
-npm i -g vercel
-vercel login
-vercel link
-vercel --prod
+cd backend && npx prisma migrate deploy
 ```
 
-O `vercel-build` (em [`package.json`](package.json)) roda `prisma generate`,
-aplica as migrations e compila o frontend.
+O build do serviço não pode emitir nada: sobrescrever o `buildCommand` faz a Vercel
+publicar a saída do `tsc` em vez do bundle rastreado dela.
 
-### 5. Primeiro acesso
+### Primeiro acesso
 
-O seed cria dados de demonstração e **senhas públicas conhecidas** — não rode em
-produção. Crie a primeira organização e o primeiro admin direto no banco, ou rode
-o seed uma vez e troque as senhas imediatamente.
+Nunca rode o seed em produção — ele cria contas com senhas publicadas no README. Use:
 
----
+```bash
+cd backend && npm run bootstrap -- --org "Empresa" --name "Seu Nome" --email voce@dominio.com
+```
 
-## Migrar depois para Railway
+Cria organização, admin com senha gerada (impressa uma vez) e o funil padrão.
 
-O worker retomável já funciona nos dois modos, então a mudança é de configuração:
+## Deploy
 
-1. Aponte o serviço para `backend`, com start `npm start`.
-2. Rode `npm run build` na raiz para que `frontend/dist` exista — o Express o serve.
-3. Defina as mesmas variáveis, mais `PROSPECTING_INLINE=true`.
+```bash
+cd backend  && vercel --prod    # API
+cd frontend && vercel --prod    # App
+```
 
-Com `PROSPECTING_INLINE` ligado o garimpo termina sozinho, sem depender de aba aberta.
+Se a URL da API mudar, atualize o `destination` em [`frontend/vercel.json`](frontend/vercel.json).
 
----
+## Migrar para Railway depois
 
-## Checklist de segurança antes de abrir para outras pessoas
+O worker retomável já roda nos dois modos, então é configuração:
 
-- [ ] Segredos JWT novos, únicos por ambiente
-- [ ] `COOKIE_SECURE=true` e tudo sob HTTPS
-- [ ] Senhas do seed trocadas (ou seed nunca executado em produção)
-- [ ] `PROSPECTING_USER_AGENT` com um e-mail real — exigência do Nominatim/Overpass
+1. Serviço apontando para `backend`, start `npm start`.
+2. `npm run build` na raiz para existir `frontend/dist` — o Express o serve.
+3. Mesmas variáveis, mais `PROSPECTING_INLINE=true`.
+
+Com isso o garimpo termina sozinho, sem depender de aba aberta.
+
+## Checklist de segurança
+
+- [x] Segredos JWT novos, únicos por ambiente
+- [x] `COOKIE_SECURE=true`, tudo sob HTTPS
+- [x] Seed nunca executado em produção
+- [x] `PROSPECTING_USER_AGENT` com e-mail real
+- [ ] Trocar a senha gerada pelo bootstrap após o primeiro login
 - [ ] Rotina para expurgar `RefreshToken` e `AuditLog` antigos

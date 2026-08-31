@@ -25,7 +25,7 @@ import suppressionRoutes from "./routes/suppressions";
 // server.ts binds a port for a normal always-on process, while a serverless
 // platform imports `app` and hands it one request at a time.
 
-export const app = express();
+const app = express();
 
 // Trust the first proxy hop (needed for correct req.ip / rate limiting behind
 // a reverse proxy or load balancer in production).
@@ -103,3 +103,10 @@ if (fs.existsSync(clientDir)) {
 }
 
 app.use(errorHandler);
+
+// Vercel resolves an Express service by scanning a fixed list of paths, with
+// `src/app.ts` ahead of `src/server.ts`, and requires the file it picks to
+// either default-export the app or listen on a port. Exporting *only* a default
+// (rather than default plus a named export) also keeps the bundler from warning
+// about mixed exports. `server.ts` imports this same default for always-on hosts.
+export default app;
