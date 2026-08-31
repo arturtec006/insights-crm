@@ -1,0 +1,435 @@
+// Prisma schema — dev uses SQLite (zero-install). Swap provider to "postgresql"
+// and set DATABASE_URL to a Postgres connection string for production; the
+// rest of the schema and application code needs no changes.
+
+generator client {
+  provider = "prisma-client-js"
+  // "native" builds the engine for this machine; the rhel target is the one
+  // Vercel's Linux runtime needs. Without it, a deployed function starts up and
+  // then fails at the first query with a missing-engine error.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite has no native enum support in Prisma, so roles are stored as a
+// validated string ("ADMIN" | "MANAGER" | "ANALYST" — see src/types/roles.ts).
+// Postgres deployments can switch this back to a proper `enum Role` block.
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  customers Customer[]
+  products  Product[]
+  sales     Sale[]
+  expenses  Expense[]
+  targets   RevenueTarget[]
+  auditLogs AuditLog[]
+
+  leads        Lead[]
+  pipelines    Pipeline[]
+  deals        Deal[]
+  activities   Activity[]
+  prospectJobs ProspectJob[]
+  suppressions SuppressionEntry[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name         String
+  email        String @unique
+  passwordHash String
+  role         String @default("ANALYST")
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  ownedLeads   Lead[]        @relation("LeadOwner")
+  ownedDeals   Deal[]        @relation("DealOwner")
+  activities   Activity[]
+  prospectJobs ProspectJob[]
+
+  @@index([organizationId])
+}
+
+// Refresh tokens are stored hashed and rotated on every use (reuse detection),
+// so a stolen token can be revoked without invalidating every session.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  createdAt  DateTime  @default(now())
+  ipAddress  String?
+  userAgent  String?
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id             String        @id @default(uuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action    String // e.g. "auth.login.success", "auth.login.failed", "user.create"
+  details   String? // JSON-encoded extra context
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([action])
+}
+
+model Customer {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name          String
+  email         String?
+  segment       String // e.g. "Enterprise", "SMB", "Startup"
+  status        String    @default("active") // active, churned, prospect
+  acquiredAt    DateTime
+  churnedAt     DateTime?
+  lifetimeValue Float     @default(0)
+  region        String?
+
+  sales Sale[]
+  leads Lead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model Product {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  category  String
+  unitPrice Float
+
+  sales Sale[]
+
+  @@index([organizationId])
+}
+
+model Sale {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity Int      @default(1)
+  amount   Float // total sale amount
+  region   String?
+  status   String   @default("completed") // completed, refunded, pending
+  soldAt   DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([soldAt])
+}
+
+model Expense {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category    String // e.g. "Payroll", "Marketing", "Infra", "Office"
+  description String?
+  amount      Float
+  incurredAt  DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([incurredAt])
+}
+
+model RevenueTarget {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  month        Int // 1-12
+  year         Int
+  targetAmount Float
+
+  @@unique([organizationId, month, year])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM — leads, pipeline, deals, activities, and the automated prospecting jobs
+// that feed leads in. Like every other model here, each row carries an
+// organizationId and every query filters on it (tenant isolation).
+// ---------------------------------------------------------------------------
+
+// A prospect discovered by the prospecting worker or entered by hand. Kept
+// separate from Customer: a Lead is unqualified until it converts, and it
+// carries provenance (source, sourceRef, rawData) that a customer record
+// has no business holding.
+model Lead {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  companyName   String
+  contactName   String?
+  email         String?
+  phone         String? // normalized to E.164 when it could be parsed
+  phoneRaw      String?
+  website       String?
+  websiteDomain String? // normalized host, used for dedupe and "has site?" signals
+  instagram     String?
+
+  addressLine String?
+  city        String?
+  state       String?
+  latitude    Float?
+  longitude   Float?
+  category    String? // business category as reported by the source
+
+  source    String       @default("manual") // "manual" | "overpass" | "google_places" | "import"
+  sourceRef String? // provider-native id, so a re-run recognizes the same business
+  jobId     String?
+  job       ProspectJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  // Stable fingerprint used to reject duplicates within an organization.
+  // Derived in normalize.ts: phone > website domain > name+city.
+  dedupeKey String
+
+  score   Int     @default(0) // 0-100, see prospecting/score.ts
+  signals String? // JSON array of the signals that produced the score
+  rawData String? // JSON snapshot of the provider payload, for auditing a bad import
+
+  status           String  @default("new") // new | qualified | disqualified | converted
+  disqualifyReason String?
+
+  ownerId String?
+  owner   User?   @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  convertedCustomerId String?
+  convertedCustomer   Customer? @relation(fields: [convertedCustomerId], references: [id], onDelete: SetNull)
+  convertedAt         DateTime?
+
+  deals      Deal[]
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, status])
+  @@index([organizationId, score])
+  @@index([jobId])
+}
+
+model Pipeline {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  isDefault Boolean @default(false)
+
+  stages PipelineStage[]
+  deals  Deal[]
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+}
+
+model PipelineStage {
+  id         String   @id @default(uuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  name        String
+  position    Int
+  // Default win probability applied to deals entering this stage; the deal
+  // keeps its own value once a human overrides it.
+  probability Int    @default(0)
+  // "open" stages sit on the board; "won"/"lost" are terminal columns.
+  kind        String @default("open") // open | won | lost
+
+  deals Deal[]
+
+  @@unique([pipelineId, position])
+  @@index([pipelineId])
+}
+
+model Deal {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title  String
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  pipelineId String
+  pipeline   Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stageId    String
+  stage      PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  value           Float     @default(0)
+  currency        String    @default("BRL")
+  probability     Int       @default(0)
+  expectedCloseAt DateTime?
+
+  status     String    @default("open") // open | won | lost
+  lostReason String?
+  closedAt   DateTime?
+
+  ownerId String?
+  owner   User?   @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([pipelineId])
+  @@index([stageId])
+  @@index([leadId])
+}
+
+// Every human touch and every automated event on a lead or deal. The timeline
+// on a lead detail screen is just this table filtered and ordered.
+model Activity {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  type    String // note | call | whatsapp | email | meeting | task | system
+  content String
+  dueAt   DateTime?
+  doneAt  DateTime?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, createdAt])
+  @@index([leadId])
+  @@index([dealId])
+  @@index([organizationId, dueAt])
+}
+
+// One run of the prospecting worker: "find dental clinics in Sao Paulo".
+// Holds its own counters so the UI can show progress and so a bad run can be
+// audited (and its leads found) after the fact.
+model ProspectJob {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  provider       String // "overpass" | "google_places"
+  query          String // free-text niche, e.g. "clinica odontologica"
+  city           String
+  state          String?
+  radiusMeters   Int     @default(15000)
+  limit          Int     @default(100)
+  scoringProfile String  @default("completeness") // see prospecting/score.ts
+
+  status         String  @default("queued") // queued | running | done | failed | cancelled
+  foundCount     Int     @default(0)
+  createdCount   Int     @default(0)
+  duplicateCount Int     @default(0)
+  error          String?
+
+  // --- Resumability ---
+  // The entire run state lives in these columns rather than in process memory,
+  // so a job can be advanced by any number of separate invocations. That is
+  // what lets one implementation serve both a serverless host (each HTTP tick
+  // processes a slice inside the platform's time limit) and an always-on
+  // server (a loop ticks until the job is done).
+  //
+  // `candidates` holds the provider's full result set as JSON, captured once at
+  // the start: re-querying Overpass on every slice would pound a public
+  // endpoint for data already in hand.
+  candidates  String?
+  cursor      Int       @default(0)
+  // Held by whichever invocation is processing a slice right now. A second
+  // caller arriving before this expires backs off instead of double-importing.
+  lockedUntil DateTime?
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  leads Lead[]
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+}
+
+// Do-not-contact list (LGPD). The prospecting worker checks every candidate
+// against this table before creating a Lead, and a lead can be added to it
+// when someone asks to be removed. Matching is done on the same normalized
+// values used for dedupe (E.164 phone, website domain, email), so a business
+// that opted out stays out even if it is rediscovered from another source.
+model SuppressionEntry {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // "phone" | "domain" | "email"
+  kind      String
+  // Normalized value: E.164 for phone, bare host for domain, lowercased email.
+  value     String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, kind, value])
+  @@index([organizationId])
+}
