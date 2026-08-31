@@ -29,9 +29,13 @@ interface Filters {
   page: number;
 }
 
+// This screen is a work queue, not an archive: it opens on the leads nobody has
+// touched yet, so working a lead removes it from the list instead of leaving it
+// to be scrolled past forever. The status cards above the table switch to the
+// other buckets, so nothing is hidden without a way back.
 const INITIAL: Filters = {
   q: "",
-  status: "",
+  status: "new",
   city: "",
   source: "",
   assignment: "any",
@@ -39,6 +43,13 @@ const INITIAL: Filters = {
   sort: "score",
   page: 1,
 };
+
+const STATUS_CARDS: { status: LeadStatus; label: string; hint: string }[] = [
+  { status: "new", label: "Novos", hint: "Sua fila de trabalho" },
+  { status: "qualified", label: "Qualificados", hint: "Já estão no funil" },
+  { status: "converted", label: "Convertidos", hint: "Viraram cliente" },
+  { status: "disqualified", label: "Descartados", hint: "Fora do perfil" },
+];
 
 function buildQueryString(filters: Filters): string {
   const params = new URLSearchParams({
@@ -83,14 +94,31 @@ export function LeadsPage() {
 
   const counts = data.statusCounts;
   const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
+  // The untouched-leads queue with nothing narrowing it further: an empty result
+  // here means the work is done, not that the search was too specific.
+  const isQueueView =
+    filters.status === "new" && !filters.q && !filters.city && !filters.source && filters.minScore === 0;
 
   return (
     <div className="space-y-6">
+      {/* Doubles as the status filter: the numbers already say where the leads
+          are, so making them the control avoids a second place to look. */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard label="Novos" value={formatNumber(counts.new ?? 0)} hint="Ainda não trabalhados" />
-        <KpiCard label="Qualificados" value={formatNumber(counts.qualified ?? 0)} hint="Viraram negócio" />
-        <KpiCard label="Convertidos" value={formatNumber(counts.converted ?? 0)} hint="Viraram cliente" />
-        <KpiCard label="Descartados" value={formatNumber(counts.disqualified ?? 0)} hint="Fora do perfil" />
+        {STATUS_CARDS.map((card) => {
+          const active = filters.status === card.status;
+          return (
+            <button
+              key={card.status}
+              type="button"
+              onClick={() => update({ status: card.status })}
+              aria-pressed={active}
+              className="rounded-xl text-left transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ outlineColor: "var(--accent)", boxShadow: active ? "0 0 0 2px var(--accent)" : undefined }}
+            >
+              <KpiCard label={card.label} value={formatNumber(counts[card.status] ?? 0)} hint={card.hint} />
+            </button>
+          );
+        })}
       </div>
 
       <Card className="p-4">
@@ -235,11 +263,15 @@ export function LeadsPage() {
 
         {data.leads.length === 0 ? (
           <div className="px-5 pb-8 pt-4 text-center">
+            {/* An empty queue is an accomplishment, not a failed search — say so,
+                instead of implying the filters are wrong. */}
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Nenhum lead com esses filtros.
+              {isQueueView ? "Fila zerada — você trabalhou todos os leads novos." : "Nenhum lead com esses filtros."}
             </p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              Ajuste os filtros ou rode uma busca automática na aba Garimpo.
+              {isQueueView
+                ? "Rode uma busca no Garimpo para trazer mais, ou veja os outros status acima."
+                : "Ajuste os filtros ou rode uma busca automática na aba Garimpo."}
             </p>
           </div>
         ) : (

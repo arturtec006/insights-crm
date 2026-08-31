@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../lib/api";
-import type { ActivityType, LeadDetail, LeadStatus } from "../types/crm";
+import type { ActivityType, LeadDetail } from "../types/crm";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
@@ -55,13 +55,6 @@ export function LeadDetailPage() {
 
   const fail = (err: unknown) => setError(err instanceof ApiError ? err.message : "Algo deu errado. Tente de novo.");
 
-  const setStatus = useMutation({
-    mutationFn: (status: LeadStatus) =>
-      apiFetch(`/leads/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
-    onSuccess: invalidate,
-    onError: fail,
-  });
-
   const addActivity = useMutation({
     mutationFn: () =>
       apiFetch("/activities", {
@@ -104,7 +97,7 @@ export function LeadDetailPage() {
 
   const lead = data.lead;
   const wa = whatsappLink(lead.phone);
-  const busy = setStatus.isPending || convert.isPending || suppress.isPending || createDeal.isPending;
+  const busy = convert.isPending || suppress.isPending || createDeal.isPending;
 
   return (
     <div className="space-y-6">
@@ -124,18 +117,20 @@ export function LeadDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {/* Qualifying and opening a deal are one action: deciding a lead is
+              worth pursuing is what puts it in the funnel. Keeping them apart
+              produced leads marked "qualified" that existed in neither the work
+              queue nor the board. */}
           {lead.status === "new" && (
-            <Button disabled={busy} onClick={() => setStatus.mutate("qualified")}>
-              Qualificar
+            <Button disabled={busy} onClick={() => createDeal.mutate(`${lead.companyName} - proposta`)}>
+              Qualificar e abrir negócio
             </Button>
           )}
-          {lead.status !== "converted" && lead.status !== "disqualified" && (
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={() => createDeal.mutate(`${lead.companyName} - proposta`)}
-            >
-              Abrir negócio
+          {/* Leads qualified before the two actions were merged can still have
+              no deal; this gets them onto the board. */}
+          {lead.status === "qualified" && lead.deals.length === 0 && (
+            <Button disabled={busy} onClick={() => createDeal.mutate(`${lead.companyName} - proposta`)}>
+              Abrir negócio no funil
             </Button>
           )}
           {lead.status !== "converted" && (
