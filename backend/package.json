@@ -13,7 +13,8 @@
     "db:reset": "prisma migrate reset --force",
     "test": "tsx --test src/**/*.test.ts",
     "bootstrap": "tsx prisma/bootstrap.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "set-password": "tsx prisma/set-password.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
