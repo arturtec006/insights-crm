@@ -1,6 +1,6 @@
-// Prisma schema — dev uses SQLite (zero-install). Swap provider to "postgresql"
-// and set DATABASE_URL to a Postgres connection string for production; the
-// rest of the schema and application code needs no changes.
+// Prisma schema. Postgres in every environment: the app is deployed serverless,
+// where a file-backed SQLite database has nowhere to live. See DEPLOY.md for how
+// to point DATABASE_URL and DIRECT_URL at a Neon project.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,13 +11,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Migrations need a direct connection: a pooler (PgBouncer, Neon's -pooler
+  // host) cannot run DDL reliably. Application queries still go through the
+  // pooled `url`, which is what keeps serverless invocations from exhausting
+  // the database's connection limit.
+  directUrl = env("DIRECT_URL")
 }
 
-// SQLite has no native enum support in Prisma, so roles are stored as a
-// validated string ("ADMIN" | "MANAGER" | "ANALYST" — see src/types/roles.ts).
-// Postgres deployments can switch this back to a proper `enum Role` block.
+// Roles, statuses and kinds are stored as validated strings rather than
+// Postgres enums. The application is the one enforcing them (src/types/roles.ts,
+// src/validators/crm.ts), and keeping them as text means adding a pipeline stage
+// kind or a lead status is a code change instead of a migration that locks the
+// table.
 
 model Organization {
   id        String   @id @default(uuid())

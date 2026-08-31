@@ -12,22 +12,29 @@ controle de acesso por papel (RBAC) e isolamento de dados entre empresas.
 
 ## Stack
 
-- **Backend:** Node.js, Express, TypeScript, Prisma ORM, SQLite (dev) / PostgreSQL (produção)
+- **Backend:** Node.js, Express, TypeScript, Prisma ORM, PostgreSQL
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS v4, Recharts, React Query, Zustand, React Router
+- **Deploy:** Vercel (serverless) ou qualquer host sempre ligado — veja [DEPLOY.md](DEPLOY.md)
 
 ## Como rodar
+
+Você precisa de um Postgres. O tier gratuito do [Neon](https://neon.tech) serve tanto
+para desenvolvimento quanto para produção (use branches diferentes do mesmo projeto).
 
 ### 1. Backend
 
 ```bash
 cd backend
 npm install
-npx prisma migrate dev   # cria o banco e roda o seed automaticamente
+cp .env.example .env      # preencha DATABASE_URL, DIRECT_URL e os segredos JWT
+npx prisma migrate deploy # cria as tabelas
+npm run prisma:seed       # dados de demonstração (nunca rode em produção)
 npm run dev               # http://localhost:4000
 ```
 
-`.env` já é criado automaticamente com segredos JWT aleatórios na primeira configuração
-deste projeto (veja `.env.example` para o formato). **Nunca reutilize esses segredos em produção.**
+Gere segredos JWT reais com
+`node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`.
+**Nunca reutilize os mesmos segredos entre ambientes.**
 
 ### 2. Frontend
 
@@ -55,8 +62,20 @@ Entre com contas de empresas diferentes para confirmar que os dados nunca se mis
 
 ## Garimpo de leads — como funciona
 
-Menu **Garimpo** → escolha nicho + cidade → *Iniciar garimpo*. O worker roda em segundo
-plano e a tela mostra o progresso ao vivo.
+Menu **Garimpo** → escolha nicho + cidade → *Iniciar garimpo*. A tela mostra o progresso
+ao vivo.
+
+O worker é **retomável**: todo o estado da busca (resultados da fonte, cursor, contadores)
+vive no banco, nunca na memória do processo. Isso tem duas consequências práticas:
+
+- O mesmo código roda em **serverless** — a tela pede uma fatia por vez via
+  `POST /api/prospecting/jobs/:id/tick`, cada uma cabendo no limite de tempo do host — e
+  em **host sempre ligado**, onde `PROSPECTING_INLINE=true` termina o job sozinho.
+- Uma busca interrompida (aba fechada, deploy no meio, servidor reiniciado) **retoma do
+  ponto onde parou**, mantendo tudo que já capturou. Ela não é perdida nem reimportada.
+
+Ticks simultâneos são seguros: o job carrega um lock, então uma segunda aba recebe o
+estado atual em vez de importar os mesmos negócios de novo.
 
 ### O pipeline, em ordem
 
@@ -140,8 +159,8 @@ que é dado pessoal. O que o sistema faz a respeito:
 
 ### Checklist para produção
 
-- Trocar `provider = "sqlite"` por `"postgresql"` no `schema.prisma` e apontar `DATABASE_URL`
-  para um banco gerenciado (o restante do código não muda).
+- Apontar `DATABASE_URL` (pooled) e `DIRECT_URL` (direta) para o Postgres gerenciado
+  — veja [DEPLOY.md](DEPLOY.md) para o passo a passo.
 - Definir `COOKIE_SECURE=true` e servir tudo via HTTPS.
 - Gerar novos segredos JWT (`JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET`) únicos por ambiente.
 - Colocar a API atrás de um proxy/load balancer que preserve o cabeçalho `X-Forwarded-For`.
