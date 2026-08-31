@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useThemeStore } from "../../store/themeStore";
+import { Icon } from "../ui/Icon";
 import { Badge } from "../ui/Badge";
 
 const roleLabel: Record<string, string> = {
@@ -27,7 +28,7 @@ export function Topbar({ onMenuClick, title }: { onMenuClick: () => void; title:
           style={{ color: "var(--text-secondary)" }}
           aria-label="Abrir menu"
         >
-          ☰
+          <Icon.Menu size={18} />
         </button>
         <h1 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
           {title}
@@ -42,7 +43,7 @@ export function Topbar({ onMenuClick, title }: { onMenuClick: () => void; title:
           aria-label="Alternar tema"
           title="Alternar tema claro/escuro"
         >
-          {theme === "dark" ? "☀️" : "🌙"}
+          {theme === "dark" ? <Icon.Sun size={16} /> : <Icon.Moon size={16} />}
         </button>
 
         <div className="relative">

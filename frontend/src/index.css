@@ -82,72 +82,105 @@
 
 /* =========================================================================
    TOKENS — TEMA ESCURO
-   Mantida a estrutura original do arquivo: um bloco dentro de
-   prefers-color-scheme (quando não há data-theme explícito) e um bloco para
-   data-theme="dark". O corpo dos dois é IDÊNTICO — está logo abaixo, como
-   "BLOCO CANÔNICO", para não duplicar 45 linhas neste documento.
+
+   Dois seletores: um dentro de prefers-color-scheme, para quem nunca escolheu
+   nada, e outro para data-theme="dark", que vence quando a pessoa escolheu.
+   O corpo é idêntico e está escrito por extenso nos dois — CSS não tem como um
+   seletor herdar o corpo de outro, e tentar encurtar isso já custou um deploy
+   com o tema escuro sem nenhum token.
    ========================================================================= */
 :root[data-theme="dark"],
 :root:not([data-theme="light"]) {
   @media (prefers-color-scheme: dark) {
-    /* ↓ colar aqui o BLOCO CANÔNICO ↓ */
+    color-scheme: dark;
+    --surface-0: #0d0d0d;
+    --surface-1: #171716; /* card: um degrau acima da página */
+    --surface-2: #201f1d; /* elevado: input, trilho, thead */
+    --surface-3: #2a2825; /* hover */
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #969389; /* 5.3:1 sobre surface-1 */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: #2c2c2a;
+    --border-heavy: #3d3c39;
+    --baseline: #383835;
+    --accent: #3987e5;
+    --accent-hover: #4d95ea;
+    --accent-ink: #ffffff;
+    --accent-soft: #16283f;
+    --accent-text: #5a9df0; /* 6.2:1 sobre surface-1 */
+    --accent-ring: rgba(57, 135, 229, 0.45);
+    --status-good: #0ca30c;
+    --status-good-text: #4ec94e;
+    --status-warning: #fab219;
+    --status-warning-text: #fab219; /* 9.5:1 no escuro — clara já é o par certo */
+    --status-serious: #ec835a;
+    --status-serious-text: #ec835a; /* 6.6:1 */
+    --status-critical: #e66767;
+    --status-critical-text: #e66767; /* 6.4:1 */
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    /* No escuro, sombra quase não existe. A profundidade vem da escada de
+    superfícies + de um realce branco de 1px no topo do painel — é esse
+    detalhe (Linear) que faz dark mode parecer caro em vez de "fundo preto". */
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55);
+    --edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.045);
   }
 }
 
 :root[data-theme="dark"] {
-  /* ↓ colar aqui o BLOCO CANÔNICO (o mesmo, sem alterar nada) ↓ */
+  color-scheme: dark;
+  --surface-0: #0d0d0d;
+  --surface-1: #171716; /* card: um degrau acima da página */
+  --surface-2: #201f1d; /* elevado: input, trilho, thead */
+  --surface-3: #2a2825; /* hover */
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #969389; /* 5.3:1 sobre surface-1 */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: #2c2c2a;
+  --border-heavy: #3d3c39;
+  --baseline: #383835;
+  --accent: #3987e5;
+  --accent-hover: #4d95ea;
+  --accent-ink: #ffffff;
+  --accent-soft: #16283f;
+  --accent-text: #5a9df0; /* 6.2:1 sobre surface-1 */
+  --accent-ring: rgba(57, 135, 229, 0.45);
+  --status-good: #0ca30c;
+  --status-good-text: #4ec94e;
+  --status-warning: #fab219;
+  --status-warning-text: #fab219; /* 9.5:1 no escuro — clara já é o par certo */
+  --status-serious: #ec835a;
+  --status-serious-text: #ec835a; /* 6.6:1 */
+  --status-critical: #e66767;
+  --status-critical-text: #e66767; /* 6.4:1 */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  /* No escuro, sombra quase não existe. A profundidade vem da escada de
+  superfícies + de um realce branco de 1px no topo do painel — é esse
+  detalhe (Linear) que faz dark mode parecer caro em vez de "fundo preto". */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
-/* ===== BLOCO CANÔNICO DO TEMA ESCURO — colar nos DOIS seletores ===== */
-color-scheme: dark;
-
---surface-0: #0d0d0d;
---surface-1: #171716; /* card: um degrau acima da página */
---surface-2: #201f1d; /* elevado: input, trilho, thead */
---surface-3: #2a2825; /* hover */
-
---text-primary: #ffffff;
---text-secondary: #c3c2b7;
---text-muted: #969389; /* 5.3:1 sobre surface-1 */
-
---border-subtle: rgba(255, 255, 255, 0.06);
---border: rgba(255, 255, 255, 0.1);
---border-strong: #2c2c2a;
---border-heavy: #3d3c39;
-
---baseline: #383835;
-
---accent: #3987e5;
---accent-hover: #4d95ea;
---accent-ink: #ffffff;
---accent-soft: #16283f;
---accent-text: #5a9df0; /* 6.2:1 sobre surface-1 */
---accent-ring: rgba(57, 135, 229, 0.45);
-
---status-good: #0ca30c;
---status-good-text: #4ec94e;
---status-warning: #fab219;
---status-warning-text: #fab219; /* 9.5:1 no escuro — clara já é o par certo */
---status-serious: #ec835a;
---status-serious-text: #ec835a; /* 6.6:1 */
---status-critical: #e66767;
---status-critical-text: #e66767; /* 6.4:1 */
-
---series-1: #3987e5;
---series-2: #d95926;
---series-3: #199e70;
---series-4: #c98500;
---series-5: #d55181;
---series-6: #008300;
---series-7: #9085e9;
---series-8: #e66767;
-
-/* No escuro, sombra quase não existe. A profundidade vem da escada de
-   superfícies + de um realce branco de 1px no topo do painel — é esse
-   detalhe (Linear) que faz dark mode parecer caro em vez de "fundo preto". */
---shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
---shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
---shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55);
---edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.045);
 /* =========================================================================
    PONTE PARA O TAILWIND v4
    `@theme inline` faz o Tailwind emitir `var(--surface-1)` em vez de copiar o
