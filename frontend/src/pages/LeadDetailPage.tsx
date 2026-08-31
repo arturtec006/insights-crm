@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "../lib/api";
 import type { ActivityType, LeadDetail } from "../types/crm";
 import { Card, CardHeader } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
+import { Icon } from "../components/ui/Icon";
 import { Badge } from "../components/ui/Badge";
 import { PageState } from "../components/ui/PageState";
 import { formatCurrency } from "../lib/format";
@@ -19,6 +20,11 @@ const inputStyle = {
 };
 
 const LOGGABLE: ActivityType[] = ["note", "call", "whatsapp", "email", "meeting", "task"];
+
+function ActivityIcon({ type, size = 14 }: { type: ActivityType; size?: number }) {
+  const Glyph = Icon[activityIcon[type]];
+  return <Glyph size={size} />;
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -184,7 +190,8 @@ export function LeadDetailPage() {
                       color: activityType === t ? "var(--accent)" : "var(--text-secondary)",
                     }}
                   >
-                    {activityIcon[t]} {activityLabel[t]}
+                    <ActivityIcon type={t} size={13} />
+                    {activityLabel[t]}
                   </button>
                 ))}
               </div>
@@ -216,8 +223,11 @@ export function LeadDetailPage() {
                 <ol className="space-y-4">
                   {lead.activities.map((a) => (
                     <li key={a.id} className="flex gap-3">
-                      <span className="mt-0.5 text-base" aria-hidden>
-                        {activityIcon[a.type]}
+                      <span
+                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                        style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}
+                      >
+                        <ActivityIcon type={a.type} size={13} />
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-2">
@@ -248,14 +258,14 @@ export function LeadDetailPage() {
               <Field label="Telefone">
                 <span className="tabular-nums">{formatPhone(lead.phone)}</span>
                 {wa && (
-                  <a href={wa} target="_blank" rel="noreferrer" className="ml-2 text-xs hover:underline" style={{ color: "var(--accent)" }}>
+                  <a href={wa} target="_blank" rel="noreferrer" className="ml-2 text-xs hover:underline" style={{ color: "var(--accent-text)" }}>
                     WhatsApp
                   </a>
                 )}
               </Field>
               <Field label="E-mail">
                 {lead.email ? (
-                  <a href={`mailto:${lead.email}`} className="hover:underline" style={{ color: "var(--accent)" }}>
+                  <a href={`mailto:${lead.email}`} className="hover:underline" style={{ color: "var(--accent-text)" }}>
                     {lead.email}
                   </a>
                 ) : (
@@ -264,7 +274,7 @@ export function LeadDetailPage() {
               </Field>
               <Field label="Site">
                 {lead.website ? (
-                  <a href={lead.website} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--accent)" }}>
+                  <a href={lead.website} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--accent-text)" }}>
                     {lead.websiteDomain}
                   </a>
                 ) : (
@@ -278,7 +288,7 @@ export function LeadDetailPage() {
                     target="_blank"
                     rel="noreferrer"
                     className="hover:underline"
-                    style={{ color: "var(--accent)" }}
+                    style={{ color: "var(--accent-text)" }}
                   >
                     @{lead.instagram}
                   </a>

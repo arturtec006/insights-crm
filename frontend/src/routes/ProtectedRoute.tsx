@@ -8,7 +8,7 @@ export function ProtectedRoute({ allow }: { allow?: Role[] }) {
   if (status === "checking") {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: "var(--surface-0)" }}>
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: "var(--accent)" }} />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: "var(--accent-text)" }} />
       </div>
     );
   }

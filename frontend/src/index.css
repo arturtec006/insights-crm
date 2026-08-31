@@ -1,27 +1,54 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   TOKENS — TEMA CLARO
+   ========================================================================= */
 :root {
   color-scheme: light;
 
-  --surface-0: #f9f9f7; /* page plane */
-  --surface-1: #fcfcfb; /* card / chart surface */
-  --surface-2: #ffffff;
+  /* --- Escada de superfícies -------------------------------------------
+     Regra: surface-0 é a página. surface-1 é o card (o plano mais claro no
+     tema claro). surface-2 e 3 RECUAM (escurecem) — trilhos, inputs, headers
+     de tabela, botão secundário. No tema escuro a escada inverte de direção,
+     mas a semântica é a mesma: "afastar-se do card na direção do contraste".
+     ------------------------------------------------------------------- */
+  --surface-0: #f5f5f2; /* página */
+  --surface-1: #ffffff; /* card / chart */
+  --surface-2: #f7f7f4; /* recuado: input, trilho, thead, botão 2º */
+  --surface-3: #eeeeea; /* hover / pressionado */
+
   --text-primary: #0b0b0b;
   --text-secondary: #52514e;
-  --text-muted: #898781;
-  --border: rgba(11, 11, 11, 0.1);
-  --border-strong: #e1e0d9;
+  --text-muted: #716f69; /* era #898781 — 3.54:1 falhava AA; agora 4.9:1 */
+
+  /* --- Bordas em 3 níveis (Linear) ------------------------------------- */
+  --border-subtle: rgba(11, 11, 11, 0.06); /* divisor interno de linha */
+  --border: rgba(11, 11, 11, 0.1); /* padrão */
+  --border-strong: #e6e5df; /* borda externa de card */
+  --border-heavy: #d3d2c9; /* hover de card, drop zone ativa */
+
   --baseline: #c3c2b7;
 
-  --accent: #2a78d6;
+  /* --- Acento ---------------------------------------------------------- */
+  --accent: #2a78d6; /* preenchimento: botão, barra, gráfico */
+  --accent-hover: #2168bd;
   --accent-ink: #ffffff;
   --accent-soft: #eaf2fc;
+  --accent-text: #1d63bd; /* NOVO — acento como TEXTO. 5.76:1 */
+  --accent-ring: rgba(42, 120, 214, 0.4);
 
+  /* --- Status: par preenchimento + texto -------------------------------
+     Todo status ganha um "-text" escuro, como --status-good-text já fazia.
+     Preenchimento = barras/fundos/gráficos. Texto = badge, label, valor.
+     ------------------------------------------------------------------- */
   --status-good: #0ca30c;
-  --status-good-text: #006300;
+  --status-good-text: #006300; /* 7.4:1 */
   --status-warning: #fab219;
+  --status-warning-text: #8a5a00; /* NOVO — era 1.8:1, agora 5.8:1 */
   --status-serious: #ec835a;
+  --status-serious-text: #a53f18; /* NOVO — era 2.6:1, agora 5.2:1 */
   --status-critical: #d03b3b;
+  --status-critical-text: #b62c2c; /* NOVO — 6.1:1 */
 
   --series-1: #2a78d6;
   --series-2: #eb6834;
@@ -31,81 +58,136 @@
   --series-6: #008300;
   --series-7: #4a3aa7;
   --series-8: #e34948;
+
+  /* --- Profundidade (receita Vercel: hairline + sussurro) --------------- */
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 1px 1px rgba(11, 11, 11, 0.03);
+  --shadow-raised: 0 2px 4px rgba(11, 11, 11, 0.05), 0 6px 16px rgba(11, 11, 11, 0.06);
+  --shadow-overlay: 0 8px 28px rgba(11, 11, 11, 0.12), 0 2px 6px rgba(11, 11, 11, 0.06);
+  --edge-highlight: none; /* só existe no dark */
+
+  /* --- Raio ------------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px; /* controles */
+  --radius-lg: 10px; /* cards */
+  --radius-xl: 14px;
+
+  /* --- Motion ----------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 280ms;
 }
 
+/* =========================================================================
+   TOKENS — TEMA ESCURO
+   Mantida a estrutura original do arquivo: um bloco dentro de
+   prefers-color-scheme (quando não há data-theme explícito) e um bloco para
+   data-theme="dark". O corpo dos dois é IDÊNTICO — está logo abaixo, como
+   "BLOCO CANÔNICO", para não duplicar 45 linhas neste documento.
+   ========================================================================= */
 :root[data-theme="dark"],
 :root:not([data-theme="light"]) {
   @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-
-    --surface-0: #0d0d0d;
-    --surface-1: #1a1a19;
-    --surface-2: #221f1c;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: #2c2c2a;
-    --baseline: #383835;
-
-    --accent: #3987e5;
-    --accent-ink: #ffffff;
-    --accent-soft: #16283f;
-
-    --status-good: #0ca30c;
-    --status-good-text: #0ca30c;
-    --status-warning: #fab219;
-    --status-serious: #ec835a;
-    --status-critical: #e66767;
-
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
+    /* ↓ colar aqui o BLOCO CANÔNICO ↓ */
   }
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
+  /* ↓ colar aqui o BLOCO CANÔNICO (o mesmo, sem alterar nada) ↓ */
+}
+/* ===== BLOCO CANÔNICO DO TEMA ESCURO — colar nos DOIS seletores ===== */
+color-scheme: dark;
 
-  --surface-0: #0d0d0d;
-  --surface-1: #1a1a19;
-  --surface-2: #221f1c;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: #2c2c2a;
-  --baseline: #383835;
+--surface-0: #0d0d0d;
+--surface-1: #171716; /* card: um degrau acima da página */
+--surface-2: #201f1d; /* elevado: input, trilho, thead */
+--surface-3: #2a2825; /* hover */
 
-  --accent: #3987e5;
-  --accent-ink: #ffffff;
-  --accent-soft: #16283f;
+--text-primary: #ffffff;
+--text-secondary: #c3c2b7;
+--text-muted: #969389; /* 5.3:1 sobre surface-1 */
 
-  --status-good: #0ca30c;
-  --status-good-text: #0ca30c;
-  --status-warning: #fab219;
-  --status-serious: #ec835a;
-  --status-critical: #e66767;
+--border-subtle: rgba(255, 255, 255, 0.06);
+--border: rgba(255, 255, 255, 0.1);
+--border-strong: #2c2c2a;
+--border-heavy: #3d3c39;
 
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --series-4: #c98500;
-  --series-5: #d55181;
-  --series-6: #008300;
-  --series-7: #9085e9;
-  --series-8: #e66767;
+--baseline: #383835;
+
+--accent: #3987e5;
+--accent-hover: #4d95ea;
+--accent-ink: #ffffff;
+--accent-soft: #16283f;
+--accent-text: #5a9df0; /* 6.2:1 sobre surface-1 */
+--accent-ring: rgba(57, 135, 229, 0.45);
+
+--status-good: #0ca30c;
+--status-good-text: #4ec94e;
+--status-warning: #fab219;
+--status-warning-text: #fab219; /* 9.5:1 no escuro — clara já é o par certo */
+--status-serious: #ec835a;
+--status-serious-text: #ec835a; /* 6.6:1 */
+--status-critical: #e66767;
+--status-critical-text: #e66767; /* 6.4:1 */
+
+--series-1: #3987e5;
+--series-2: #d95926;
+--series-3: #199e70;
+--series-4: #c98500;
+--series-5: #d55181;
+--series-6: #008300;
+--series-7: #9085e9;
+--series-8: #e66767;
+
+/* No escuro, sombra quase não existe. A profundidade vem da escada de
+   superfícies + de um realce branco de 1px no topo do painel — é esse
+   detalhe (Linear) que faz dark mode parecer caro em vez de "fundo preto". */
+--shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+--shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+--shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.55);
+--edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+/* =========================================================================
+   PONTE PARA O TAILWIND v4
+   `@theme inline` faz o Tailwind emitir `var(--surface-1)` em vez de copiar o
+   valor, então trocar de tema em runtime continua funcionando — e isso
+   elimina a maior parte dos `style={{ color: "var(--token)" }}` do JSX.
+   Passa a existir: bg-surface-1, text-ink-2, border-line-2, rounded-card...
+   ========================================================================= */
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+
+  --color-line: var(--border-subtle);
+  --color-line-2: var(--border-strong);
+  --color-line-3: var(--border-heavy);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-good: var(--status-good-text);
+  --color-warning: var(--status-warning-text);
+  --color-serious: var(--status-serious-text);
+  --color-critical: var(--status-critical-text);
+
+  --radius-ctl: var(--radius-md);
+  --radius-card: var(--radius-lg);
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-* {
-  border-color: var(--border);
-}
-
+/* =========================================================================
+   BASE
+   ========================================================================= */
 html,
 body,
 #root {
@@ -115,13 +197,243 @@ body,
 body {
   background: var(--surface-0);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* cv05: "l" com cauda (não confunde com I/1) — importante em telefone e URL.
+     ss03: aspas e vírgulas curvas. Ambos são de Inter v4; confira no browser
+     e remova se não gostar do resultado. */
+  font-feature-settings: "cv05" 1, "ss03" 1;
 }
 
 ::selection {
   background: var(--accent-soft);
 }
 
+/* =========================================================================
+   ESCALA TIPOGRÁFICA — 6 degraus, e só
+   Regra: tracking NEGATIVO cresce com o tamanho; tracking POSITIVO em caixa
+   alta pequena. É a diferença entre "usei a fonte" e "ajustei a fonte".
+   ========================================================================= */
+.t-display {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+.t-title {
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+}
+.t-heading {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+}
+.t-body {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+.t-small {
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+/* O peso 510 do Linear: entre medium e semibold. 500 é fraco e 600 é pesado
+   demais em 11px. Requer Inter variável (é o que o link do Google entrega). */
+.t-micro {
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 500;
+  font-variation-settings: "wght" 560;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+/* Zero cortado só onde há confusão real com "O" (ID, domínio, telefone). */
+.numeric {
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: -0.01em;
+}
+
+/* =========================================================================
+   FOCO — um padrão único no app inteiro (Linear: anel de 2px do acento)
+   ========================================================================= */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================================================
+   TABELA DE DADOS — classe única, reaproveitada em Leads e Garimpo
+   ========================================================================= */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* larguras vêm do <colgroup>: colunas param de pular */
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-variation-settings: "wght" 560;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+  user-select: none;
+}
+.data-table thead th:first-child {
+  padding-left: 20px;
+}
+.data-table thead th:last-child {
+  padding-right: 20px;
+}
+.data-table th[data-align="right"],
+.data-table td[data-align="right"] {
+  text-align: right;
+}
+
+.data-table tbody tr {
+  height: 52px; /* altura IDÊNTICA com ou sem 2ª linha na célula */
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.data-table tbody td {
+  padding: 0 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-subtle); /* fraco: registros, não escada */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.data-table tbody td:first-child {
+  padding-left: 20px;
+}
+.data-table tbody td:last-child {
+  padding-right: 20px;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Hover: sem zebra. Zebra em tabela larga cria faixas horizontais que
+   competem com o dado; hover resolve o "onde estou" sem custo permanente.
+   Barra de 2px na esquerda = marcador de linha ativa (padrão Linear). */
+.data-table tbody tr[data-clickable] {
+  cursor: pointer;
+}
+.data-table tbody tr[data-clickable]:hover {
+  background: var(--surface-2);
+}
+.data-table tbody tr[data-clickable]:hover td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.data-table tbody tr[data-clickable]:active {
+  background: var(--surface-3);
+}
+
+/* Ações que só aparecem no hover (padrão Folk/Attio). Ficam sempre no DOM
+   e sempre focáveis pelo teclado — opacidade, não display. */
+.row-actions {
+  opacity: 0;
+  transform: translateX(2px);
+  transition: opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+tr:hover .row-actions,
+tr:focus-within .row-actions {
+  opacity: 1;
+  transform: none;
+}
+
+/* =========================================================================
+   MOTION
+   ========================================================================= */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Stagger via --i, sem lib. Com key={lead.id} no React, só linhas realmente
+   novas montam de novo — refetch não re-anima a lista inteira. */
+.row-in {
+  animation: row-in var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 14ms);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s var(--ease-in-out) infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--text-primary) 5%, transparent),
+    transparent
+  );
+  animation: shimmer 1.4s var(--ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

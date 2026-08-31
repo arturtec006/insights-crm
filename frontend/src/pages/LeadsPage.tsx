@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import type { LeadFacets, LeadsResponse, LeadStatus } from "../types/crm";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { KpiCard } from "../components/ui/KpiCard";
 import { PageState } from "../components/ui/PageState";
+import { Icon } from "../components/ui/Icon";
 import { formatNumber } from "../lib/format";
 import { LeadStatusBadge, ScoreBar } from "../components/crm/LeadBadges";
 import { formatPhone, leadStatusLabel, sourceLabel, whatsappLink } from "../components/crm/leadDisplay";
@@ -67,6 +68,7 @@ function buildQueryString(filters: Filters): string {
 }
 
 export function LeadsPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(INITIAL);
   // The text input is held separately so typing does not fire a request per
   // keystroke; the search only commits on Enter or on the button.
@@ -275,74 +277,96 @@ export function LeadsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="max-h-[calc(100vh-320px)] overflow-auto">
+            <table className="data-table">
+              {/* colgroup = colunas param de pular ao paginar */}
+              <colgroup>
+                <col style={{ width: "28%" }} />
+                <col style={{ width: 128 }} />
+                <col style={{ width: "22%" }} />
+                <col style={{ width: 132 }} />
+                <col style={{ width: 116 }} />
+                <col style={{ width: 128 }} />
+                <col style={{ width: 132 }} />
+              </colgroup>
+
               <thead>
-                <tr className="text-left text-xs uppercase" style={{ color: "var(--text-muted)" }}>
-                  <th className="px-5 pb-2 font-medium">Empresa</th>
-                  <th className="px-3 pb-2 font-medium">Score</th>
-                  <th className="px-3 pb-2 font-medium">Contato</th>
-                  <th className="px-3 pb-2 font-medium">Cidade</th>
-                  <th className="px-3 pb-2 font-medium">Origem</th>
-                  <th className="px-3 pb-2 font-medium">Responsável</th>
-                  <th className="px-5 pb-2 text-right font-medium">Status</th>
+                <tr>
+                  <th scope="col">Empresa</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Contato</th>
+                  <th scope="col">Cidade</th>
+                  <th scope="col">Origem</th>
+                  <th scope="col">Responsável</th>
+                  <th scope="col" data-align="right">Status</th>
                 </tr>
               </thead>
+
               <tbody>
-                {data.leads.map((lead) => {
+                {data.leads.map((lead, i) => {
                   const wa = whatsappLink(lead.phone);
                   return (
-                    <tr key={lead.id} className="border-t" style={{ borderColor: "var(--border-strong)" }}>
-                      <td className="px-5 py-3">
+                    <tr
+                      key={lead.id}
+                      data-clickable
+                      className="row-in"
+                      style={{ "--i": i } as React.CSSProperties}
+                      onClick={() => navigate(`/leads/${lead.id}`)}
+                    >
+                      <td>
+                        {/* o <a> continua existindo: leitor de tela, ctrl+clique,
+                            clique do meio e navegação por teclado seguem funcionando */}
                         <Link
                           to={`/leads/${lead.id}`}
-                          className="font-medium hover:underline"
-                          style={{ color: "var(--text-primary)" }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="block truncate text-[14px] font-medium text-ink hover:text-accent-text"
                         >
                           {lead.companyName}
                         </Link>
-                        {lead.contactName && (
-                          <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                            {lead.contactName}
-                          </div>
-                        )}
+                        <div className="truncate text-[12px] leading-tight text-ink-3">
+                          {lead.contactName ?? lead.category ?? " "}
+                        </div>
                       </td>
-                      <td className="px-3 py-3">
-                        <ScoreBar score={lead.score} />
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="tabular-nums" style={{ color: "var(--text-secondary)" }}>
+
+                      <td><ScoreBar score={lead.score} /></td>
+
+                      <td>
+                        <div className="numeric truncate text-[13px] text-ink-2">
                           {formatPhone(lead.phone)}
+                        </div>
+                        <div className="truncate text-[12px] leading-tight text-ink-3">
+                          {lead.email ?? " "}
+                        </div>
+                      </td>
+
+                      <td className="truncate text-[13px] text-ink-2">{lead.city ?? "—"}</td>
+                      <td className="truncate text-[13px] text-ink-3">
+                        {sourceLabel[lead.source] ?? lead.source}
+                      </td>
+                      <td className="truncate text-[13px] text-ink-2">{lead.owner?.name ?? "—"}</td>
+
+                      <td data-align="right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Ação revelada no hover (Folk/Attio): tira o link azul
+                              permanente do meio da linha e devolve o acento para a
+                              ação primária (o nome da empresa). */}
                           {wa && (
                             <a
                               href={wa}
                               target="_blank"
                               rel="noreferrer"
-                              className="ml-2 hover:underline"
-                              style={{ color: "var(--accent)" }}
-                              title="Abrir no WhatsApp"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Abrir conversa no WhatsApp"
+                              aria-label={`WhatsApp de ${lead.companyName}`}
+                              className="row-actions grid h-7 w-7 place-items-center rounded-ctl
+                                         border border-line-2 bg-surface-1 text-ink-2
+                                         hover:bg-surface-3 hover:text-ink"
                             >
-                              WhatsApp
+                              <Icon.Whatsapp size={14} />
                             </a>
                           )}
+                          <LeadStatusBadge status={lead.status} />
                         </div>
-                        {lead.email && (
-                          <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                            {lead.email}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3" style={{ color: "var(--text-secondary)" }}>
-                        {lead.city ?? "—"}
-                      </td>
-                      <td className="px-3 py-3" style={{ color: "var(--text-secondary)" }}>
-                        {sourceLabel[lead.source] ?? lead.source}
-                      </td>
-                      <td className="px-3 py-3" style={{ color: "var(--text-secondary)" }}>
-                        {lead.owner?.name ?? "—"}
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <LeadStatusBadge status={lead.status} />
                       </td>
                     </tr>
                   );

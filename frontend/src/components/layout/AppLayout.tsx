@@ -5,6 +5,9 @@ import { Topbar } from "./Topbar";
 
 const titles: Record<string, string> = {
   "/": "Visão geral",
+  "/leads": "Leads",
+  "/funil": "Funil",
+  "/garimpo": "Garimpo",
   "/vendas": "Vendas",
   "/clientes": "Clientes",
   "/financeiro": "Financeiro",
@@ -14,7 +17,12 @@ const titles: Record<string, string> = {
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const title = titles[location.pathname] ?? "Dashboard";
+  // Longest-prefix match, so nested routes inherit their section's name:
+  // an exact lookup left /leads/<id> — the lead detail page — titled "Dashboard".
+  const title =
+    Object.entries(titles)
+      .filter(([path]) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path))
+      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? "Insights CRM";
 
   return (
     <div className="flex h-full" style={{ background: "var(--surface-0)" }}>

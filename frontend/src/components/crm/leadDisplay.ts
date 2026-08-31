@@ -38,14 +38,20 @@ export const activityLabel: Record<ActivityType, string> = {
   system: "Sistema",
 };
 
-export const activityIcon: Record<ActivityType, string> = {
-  note: "📝",
-  call: "📞",
-  whatsapp: "💬",
-  email: "✉️",
-  meeting: "🤝",
-  task: "✅",
-  system: "⚙️",
+/**
+ * Which icon represents each activity type.
+ *
+ * Names rather than components, so this module stays free of JSX and can be
+ * imported anywhere; the consumer looks the name up in the `Icon` set.
+ */
+export const activityIcon: Record<ActivityType, "Note" | "Call" | "Whatsapp" | "Mail" | "Meeting" | "Task" | "System"> = {
+  note: "Note",
+  call: "Call",
+  whatsapp: "Whatsapp",
+  email: "Mail",
+  meeting: "Meeting",
+  task: "Task",
+  system: "System",
 };
 
 export const jobStatusLabel: Record<JobStatus, string> = {

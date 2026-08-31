@@ -53,7 +53,7 @@ export function Topbar({ onMenuClick, title }: { onMenuClick: () => void; title:
           >
             <div
               className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
-              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              style={{ background: "var(--accent-soft)", color: "var(--accent-text)" }}
             >
               {user?.name?.slice(0, 2).toUpperCase()}
             </div>

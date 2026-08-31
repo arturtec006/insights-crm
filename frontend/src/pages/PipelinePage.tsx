@@ -44,7 +44,7 @@ function DealCard({ deal, onDragStart }: { deal: Deal; onDragStart: (id: string)
         <Link
           to={`/leads/${deal.lead.id}`}
           className="mt-1 block text-xs hover:underline"
-          style={{ color: "var(--accent)" }}
+          style={{ color: "var(--accent-text)" }}
         >
           {deal.lead.companyName}
           {deal.lead.phone ? ` · ${formatPhone(deal.lead.phone)}` : ""}

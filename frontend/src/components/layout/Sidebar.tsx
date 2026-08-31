@@ -1,16 +1,55 @@
 import { NavLink } from "react-router-dom";
 import clsx from "clsx";
 import { RoleGate } from "../ui/RoleGate";
+import { Icon } from "../ui/Icon";
 
-const navItems = [
-  { to: "/", label: "Visão geral", icon: "📊", end: true },
-  { to: "/leads", label: "Leads", icon: "🎯" },
-  { to: "/funil", label: "Funil", icon: "📋" },
-  { to: "/garimpo", label: "Garimpo", icon: "⛏️" },
-  { to: "/vendas", label: "Vendas", icon: "💰" },
-  { to: "/clientes", label: "Clientes", icon: "👥" },
-  { to: "/financeiro", label: "Financeiro", icon: "🏦" },
+const navGroups = [
+  {
+    label: null,
+    items: [
+      { to: "/", label: "Visão geral", Icon: Icon.Overview, end: true },
+      { to: "/leads", label: "Leads", Icon: Icon.Leads },
+      { to: "/funil", label: "Funil", Icon: Icon.Pipeline },
+      { to: "/garimpo", label: "Garimpo", Icon: Icon.Prospect },
+    ],
+  },
+  {
+    label: "Pós-venda",
+    items: [
+      { to: "/vendas", label: "Vendas", Icon: Icon.Sales },
+      { to: "/clientes", label: "Clientes", Icon: Icon.Customers },
+      { to: "/financeiro", label: "Financeiro", Icon: Icon.Finance },
+    ],
+  },
 ];
+
+interface NavItemProps {
+  to: string;
+  label: string;
+  Icon: (p: { size?: number }) => React.ReactElement;
+  end?: boolean;
+  onClose: () => void;
+}
+
+// One row of navigation. The active state is carried by background *and* text
+// colour rather than colour alone, so it survives a colour-vision difference.
+function NavItem({ to, label, Icon: ItemIcon, end, onClose }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClose}
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+      style={({ isActive }) => ({
+        background: isActive ? "var(--accent-soft)" : "transparent",
+        color: isActive ? "var(--accent-text)" : "var(--text-secondary)",
+      })}
+    >
+      <ItemIcon size={16} />
+      {label}
+    </NavLink>
+  );
+}
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -41,38 +80,27 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           </span>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-              style={({ isActive }) => ({
-                background: isActive ? "var(--accent-soft)" : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-secondary)",
-              })}
-            >
-              <span aria-hidden>{item.icon}</span>
-              {item.label}
-            </NavLink>
+        <nav className="flex-1 space-y-4 px-3">
+          {navGroups.map((group, i) => (
+            <div key={group.label ?? i} className="space-y-1">
+              {group.label && (
+                <p
+                  className="px-3 pb-1 text-[11px] font-medium uppercase"
+                  style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}
+                >
+                  {group.label}
+                </p>
+              )}
+              {group.items.map((item) => (
+                <NavItem key={item.to} {...item} onClose={onClose} />
+              ))}
+            </div>
           ))}
 
           <RoleGate allow={["ADMIN"]}>
-            <div className="my-2 border-t" style={{ borderColor: "var(--border-strong)" }} />
-            <NavLink
-              to="/usuarios"
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-              style={({ isActive }) => ({
-                background: isActive ? "var(--accent-soft)" : "transparent",
-                color: isActive ? "var(--accent)" : "var(--text-secondary)",
-              })}
-            >
-              <span aria-hidden>⚙️</span>
-              Usuários
-            </NavLink>
+            <div className="space-y-1 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+              <NavItem to="/usuarios" label="Usuários" Icon={Icon.Settings} onClose={onClose} />
+            </div>
           </RoleGate>
         </nav>
 

@@ -8,6 +8,15 @@
     <!-- The app paints its own background from a CSS token; telling the browser
          which schemes are supported avoids a white flash before CSS loads. -->
     <meta name="color-scheme" content="light dark" />
+    <!-- Loaded with <link> rather than an @import in the CSS: an @import chains
+         a second request behind the stylesheet and delays first paint. The font
+         stack falls back to system-ui, so the app is legible before Inter lands. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap"
+    />
     <title>Insights CRM</title>
   </head>
   <body>
