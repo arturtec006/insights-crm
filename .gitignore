@@ -19,3 +19,10 @@ build/
 
 # Local editor/agent settings (machine-specific)
 .claude/settings.local.json
+
+.vercel
+.env*
+
+# The negation has to come after the broad .env* rule above, or the example
+# file (which carries only placeholders) gets ignored too.
+!.env.example

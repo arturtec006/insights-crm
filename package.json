@@ -3,21 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "description": "CRM com captacao automatica de leads",
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
-    "dev:api": "npm run dev -w backend",
-    "dev:web": "npm run dev -w frontend",
-    "test": "npm test -w backend",
-    "build": "npm run build -w backend && npm run build -w frontend",
-    "vercel-build": "prisma generate --schema backend/prisma/schema.prisma && prisma migrate deploy --schema backend/prisma/schema.prisma && npm run build -w frontend",
-    "db:migrate": "npm run prisma:migrate -w backend",
-    "db:seed": "npm run prisma:seed -w backend"
-  },
-  "devDependencies": {
-    "prisma": "^5.20.0"
+    "dev:api": "cd backend && npm run dev",
+    "dev:web": "cd frontend && npm run dev",
+    "test": "cd backend && npm test",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "bootstrap": "cd backend && npm run bootstrap --"
   },
   "engines": {
     "node": ">=20"
