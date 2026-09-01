@@ -39,6 +39,16 @@ export const env = {
   // Enrichment visits each lead website once. Turn off to skip that step.
   enrichmentEnabled: process.env.ENRICHMENT_ENABLED !== "false",
 
+  // --- E-mail (password reset) ---
+  // Without a key the app logs the message instead of sending it, which is fine
+  // locally and useless in production — the reset endpoint reports that.
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? "Insights CRM <onboarding@resend.dev>",
+  // Public origin used to build the reset link. Must be the address people
+  // actually open, not the API's own domain.
+  appUrl: process.env.APP_URL ?? "http://localhost:5173",
+  passwordResetTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES ?? 30),
+
   // How long one prospecting slice may work before returning. Must stay
   // comfortably under the host's request timeout: Vercel allows 300s, and 45s
   // keeps each tick responsive enough that the UI shows steady progress.

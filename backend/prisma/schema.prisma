@@ -3,7 +3,7 @@
 // to point DATABASE_URL and DIRECT_URL at a Neon project.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // "native" builds the engine for this machine; the rhel target is the one
   // Vercel's Linux runtime needs. Without it, a deployed function starts up and
   // then fails at the first query with a missing-engine error.
@@ -11,8 +11,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   // Migrations need a direct connection: a pooler (PgBouncer, Neon's -pooler
   // host) cannot run DDL reliably. Application queries still go through the
   // pooled `url`, which is what keeps serverless invocations from exhausting
@@ -67,8 +67,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  refreshTokens  RefreshToken[]
+  passwordResets PasswordResetToken[]
+  auditLogs      AuditLog[]
 
   ownedLeads   Lead[]        @relation("LeadOwner")
   ownedDeals   Deal[]        @relation("DealOwner")
@@ -439,4 +440,27 @@ model SuppressionEntry {
 
   @@unique([organizationId, kind, value])
   @@index([organizationId])
+}
+
+// A single-use link for resetting a forgotten password.
+//
+// Only the hash is stored, exactly as with refresh tokens: a database leak must
+// not hand anyone a working reset link. The row is kept after use rather than
+// deleted, so "this token was already spent" is distinguishable from "this token
+// never existed" in the audit trail.
+model PasswordResetToken {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

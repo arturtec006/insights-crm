@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useThemeStore } from "../../store/themeStore";
 import { Icon } from "../ui/Icon";
@@ -79,6 +80,14 @@ export function Topbar({ onMenuClick, title }: { onMenuClick: () => void; title:
                 <div className="px-2 pb-2">
                   <Badge tone="neutral">{user && roleLabel[user.role]}</Badge>
                 </div>
+                <Link
+                  to="/conta"
+                  onClick={() => setMenuOpen(false)}
+                  className="block w-full rounded-md px-2 py-1.5 text-left text-sm font-medium"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Sua conta
+                </Link>
                 <button
                   onClick={logout}
                   className="w-full rounded-md px-2 py-1.5 text-left text-sm font-medium"

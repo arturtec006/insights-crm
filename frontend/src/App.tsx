@@ -4,6 +4,9 @@ import { useAuthStore } from "./store/authStore";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { AccountPage } from "./pages/AccountPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { SalesPage } from "./pages/SalesPage";
 import { CustomersPage } from "./pages/CustomersPage";
@@ -24,11 +27,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<OverviewPage />} />
           <Route path="/vendas" element={<SalesPage />} />
+          <Route path="/conta" element={<AccountPage />} />
           <Route path="/clientes" element={<CustomersPage />} />
           <Route path="/leads" element={<LeadsPage />} />
           <Route path="/leads/:id" element={<LeadDetailPage />} />

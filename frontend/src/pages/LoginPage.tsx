@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/Button";
 
@@ -37,7 +37,7 @@ export function LoginPage() {
             IA
           </div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-            Insights Analytics
+            Insights CRM
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
             Entre com a conta da sua empresa
@@ -96,13 +96,12 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 rounded-xl border p-4 text-xs" style={{ background: "var(--surface-1)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}>
-          <p className="mb-2 font-medium" style={{ color: "var(--text-secondary)" }}>
-            Contas de demonstração
-          </p>
-          <p>admin@aurora.com / Admin123!Secure</p>
-          <p>manager@aurora.com / Manager123!Secure</p>
-          <p>analyst@aurora.com / Analyst123!Secure</p>
+        {/* The demo credentials that used to sit here were printed on a public
+            login page. They belong in the README, not in production. */}
+        <div className="mt-4 text-center text-sm">
+          <Link to="/esqueci-senha" style={{ color: "var(--accent-text)" }} className="hover:underline">
+            Esqueci minha senha
+          </Link>
         </div>
       </div>
     </div>

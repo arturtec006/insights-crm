@@ -74,6 +74,9 @@ O frontend é estático e não precisa de nenhuma.
 | `PROSPECTING_USER_AGENT` | `SeuCRM/1.0 (prospecting; seu-email@dominio.com.br)` |
 | `PROSPECTING_SLICE_MS` | `45000` |
 | `PROSPECTING_INLINE` | `false` |
+| `APP_URL` | a URL pública do app — é o que monta o link do e-mail |
+| `RESEND_API_KEY` | chave do [Resend](https://resend.com). **Sem ela, a redefinição de senha não envia nada** |
+| `EMAIL_FROM` | remetente verificado; para testar, `onboarding@resend.dev` |
 
 Gere segredos com
 `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`.

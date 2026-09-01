@@ -139,6 +139,21 @@ que é dado pessoal. O que o sistema faz a respeito:
   redescubra e mesmo que o lead tenha sido apagado.
 - **Auditoria.** Supressão, conversão, exclusão de lead e início de busca vão para o `AuditLog`.
 
+## Senhas
+
+- **Trocar senha** — menu do usuário → *Sua conta*. Exige a senha atual, o que impede
+  que uma sessão sequestrada tranque o dono para fora. Ao salvar, as **outras** sessões
+  são revogadas e a atual é reemitida.
+- **Esqueci a senha** — link na tela de login. O token vai para o banco **só como hash**,
+  vale 30 minutos, serve uma vez, e pedir um novo invalida o anterior.
+- A resposta de `/auth/forgot-password` é **idêntica** para e-mail existente ou não, e
+  `/auth/reset-password` devolve a **mesma mensagem** para link expirado, já usado ou
+  inventado — caso contrário viraria uma forma de descobrir quem usa o sistema.
+- **Exige um serviço de e-mail.** Sem `RESEND_API_KEY`, o app escreve a mensagem no log
+  em vez de enviar, e a tela avisa quem pediu. Veja [DEPLOY.md](DEPLOY.md).
+- `npm run set-password` continua existindo para recuperar uma conta pela linha de
+  comando; recusa senha fora da política a não ser com `--allow-weak`.
+
 ## Segurança — o que foi implementado e por quê
 
 | Camada | Medida | Motivo |
